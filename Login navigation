@@ -1,0 +1,98 @@
+import React, { useState } from 'react';
+
+// Login Page Component
+const LoginPage = ({ onSwitchToSignup, onLoginSuccess }) => {
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // Simulate login success
+    onLoginSuccess();
+  };
+
+  return (
+    <div>
+      <h1>Login Page</h1>
+      <form onSubmit={handleLogin}>
+        <input type="text" placeholder="Username" />
+        <input type="password" placeholder="Password" />
+        <button type="submit">Login</button>
+      </form>
+      <p>
+        Don't have an account?{" "}
+        <button onClick={onSwitchToSignup}>Signup</button>
+      </p>
+    </div>
+  );
+};
+
+// Signup Page Component
+const SignupPage = ({ onSwitchToLogin, onSignupSuccess }) => {
+  const handleSignup = (e) => {
+    e.preventDefault();
+    // Simulate signup success
+    onSignupSuccess();
+  };
+
+  return (
+    <div>
+      <h1>Signup Page</h1>
+      <form onSubmit={handleSignup}>
+        <input type="text" placeholder="Username" />
+        <input type="password" placeholder="Password" />
+        <button type="submit">Signup</button>
+      </form>
+      <p>
+        Already have an account?{" "}
+        <button onClick={onSwitchToLogin}>Login</button>
+      </p>
+    </div>
+  );
+};
+
+// Dashboard Layout (Protected)
+const Dashboard = ({ onLogout }) => {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <p>Welcome to your dashboard!</p>
+      <button onClick={onLogout}>Logout</button>
+    </div>
+  );
+};
+
+// Main App Component to toggle between Login, Signup, and Dashboard
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoginPage, setIsLoginPage] = useState(true);
+
+  const handleSwitchToSignup = () => setIsLoginPage(false);
+  const handleSwitchToLogin = () => setIsLoginPage(true);
+  
+  const handleLoginSuccess = () => setIsLoggedIn(true);
+  const handleSignupSuccess = () => setIsLoggedIn(true);
+
+  const handleLogout = () => setIsLoggedIn(false);
+
+  return (
+    <div>
+      {!isLoggedIn ? (
+        // Show Login or Signup based on isLoginPage state
+        isLoginPage ? (
+          <LoginPage 
+            onSwitchToSignup={handleSwitchToSignup} 
+            onLoginSuccess={handleLoginSuccess} 
+          />
+        ) : (
+          <SignupPage 
+            onSwitchToLogin={handleSwitchToLogin} 
+            onSignupSuccess={handleSignupSuccess} 
+          />
+        )
+      ) : (
+        // Show Dashboard if logged in
+        <Dashboard onLogout={handleLogout} />
+      )}
+    </div>
+  );
+}
+
+export default App;
