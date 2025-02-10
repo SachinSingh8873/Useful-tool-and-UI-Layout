@@ -1,0 +1,168 @@
+using System;
+using System.Data.SqlClient;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
+using System.Text;
+
+[Route("api/auth")]
+[ApiController]
+public class AuthController : ControllerBase
+{
+    private readonly string _connectionString = "YourConnectionStringHere"; // Update with your actual DB connection string
+
+    [HttpPost("login")]
+    public IActionResult Login([FromBody] LoginModel model)
+    {
+        if (model == null || string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
+        {
+            return BadRequest("Invalid login credentials.");
+        }
+
+        bool isValidUser = ValidateUser(model.Username, model.Password);
+
+        if (isValidUser)
+        {
+            // Optionally, generate and return a JWT token or session token for the authenticated user
+            var token = GenerateJwtToken(model.Username);
+            return Ok(new { token });
+        }
+        else
+        {
+            return Unauthorized("Invalid username or password.");
+        }
+    }
+
+    private bool ValidateUser(string username, string password)
+    {
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+            string query = "SELECT PasswordHash FROM Users WHERE Username = @Username";
+            
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@Username", username);
+                
+                var result = command.ExecuteScalar();
+                
+                if (result == null)
+                {
+                    return false; // User does not exist
+                }
+
+                string storedPasswordHash = result.ToString();
+                
+                // Verify password
+                return VerifyPasswordHash(password, storedPasswordHash);
+            }
+        }
+    }
+
+    private bool VerifyPasswordHash(string password, string storedHash)
+    {
+        // Extract salt and hash from stored password (assuming the format is "salt:hash")
+        string[] hashParts = storedHash.Split(':');
+        string salt = hashParts[0];
+        string expectedHash = hashParts[1];
+
+        // Hash the input password with the stored salt
+        string actualHash = HashPassword(password, salt);
+
+        return actualHash == expectedHash;
+    }
+
+    private string HashPassword(string password, string salt)
+    {
+        byte[] saltBytes = Convert.FromBase64String(salt);
+        byte[] hashBytes = KeyDerivation.Pbkdf2(
+            password: password,
+            salt: saltBytes,
+            prf: KeyDerivationPrf.HMACSHA512,
+            iterationCount: 10000,
+            numBytesRequested: 256 / 8);
+
+        return Convert.ToBase64String(hashBytes);
+    }
+
+    private string GenerateJwtToken(string username)
+    {
+        // Implement JWT token generation here. For now, returning a mock token
+        return "your-jwt-token";
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public string HashPasswordForNewUser(string password)
+{
+    // Generate a new salt
+    string salt = GenerateSalt();
+    
+    // Hash the password using the salt
+    string hash = HashPassword(password, salt);
+    
+    // Store both the salt and hash in the database in the format "salt:hash"
+    return $"{salt}:{hash}";
+}
+
+private string GenerateSalt()
+{
+    byte[] saltBytes = new byte[128 / 8]; // 128-bit salt
+    using (var rng = new RNGCryptoServiceProvider())
+    {
+        rng.GetBytes(saltBytes);
+    }
+
+    return Convert.ToBase64String(saltBytes);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+private string GenerateJwtToken(string username)
+{
+    var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSecretKeyHere"));
+    var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+    var token = new JwtSecurityToken(
+        issuer: "YourApp",
+        audience: "YourApp",
+        expires: DateTime.Now.AddHours(1),
+        signingCredentials: credentials
+    );
+
+    return new JwtSecurityTokenHandler().WriteToken(token);
+}
