@@ -1,0 +1,93 @@
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Crop Example with jQuery</title>
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs/dist/cropper.min.css">
+  <style>
+    #image {
+      max-width: 100%;
+      height: auto;
+    }
+    .container {
+      width: 50%;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Crop Your Image</h1>
+  <input type="file" id="upload" accept="image/*">
+  <div>
+    <img id="image" src="" alt="Image to crop">
+  </div>
+  <button id="crop-btn">Crop Image</button>
+  <h3>Cropped Image:</h3>
+  <div id="cropped-container">
+    <img id="cropped-image" src="" alt="Cropped Image">
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://unpkg.com/cropperjs/dist/cropper.min.js"></script>
+
+<script>
+  let cropper;
+
+  // Handle image upload
+  $('#upload').on('change', function(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      const image = $('#image')[0]; // Get the image element
+      image.src = e.target.result;
+
+      // Initialize Cropper.js
+      if (cropper) {
+        cropper.destroy();  // Destroy any previous cropper instance
+      }
+
+      image.onload = function() {
+        cropper = new Cropper(image, {
+          aspectRatio: 0,  // No fixed aspect ratio, free crop
+          viewMode: 1,     // Allow movement and zooming
+          autoCropArea: 0.8,  // Default crop area is 80%
+          responsive: true,
+        });
+      };
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  // Crop the image and send the cropped data using AJAX
+  $('#crop-btn').on('click', function() {
+    if (cropper) {
+      const canvas = cropper.getCroppedCanvas();
+      const croppedImage = $('#cropped-image')[0];
+      croppedImage.src = canvas.toDataURL();  // Display cropped image
+
+      // Send cropped image data to the server using AJAX
+      const croppedImageData = canvas.toDataURL('image/png');  // Get base64 image data in PNG format
+
+      $.ajax({
+        url: '/Home/UploadCroppedImage',  // ASP.NET MVC controller endpoint
+        type: 'POST',
+        data: {
+          image: croppedImageData  // Send the base64 image data
+        },
+        success: function(response) {
+          alert('Image uploaded successfully!');
+          console.log(response);
+        },
+        error: function(xhr, status, error) {
+          alert('Error: ' + error);
+        }
+      });
+    }
+  });
+</script>
+
+</body>
+</html>
