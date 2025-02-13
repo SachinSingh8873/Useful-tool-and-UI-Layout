@@ -1,0 +1,75 @@
+import React, { useState, useRef } from 'react';
+import Cropper from 'react-cropper'; 
+import 'cropperjs/dist/cropper.css'; // Import Cropper.js styles
+import axios from 'axios';
+
+const ImageCropper = () => {
+  const [image, setImage] = useState(null); // To store the selected image
+  const [croppedImage, setCroppedImage] = useState(null); // To store the cropped image
+  const cropperRef = useRef(null); // Reference to the cropper instance
+
+  // Handle image file selection
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImage(reader.result); // Set the selected image as the source for the cropper
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle the crop action
+  const handleCrop = () => {
+    const cropper = cropperRef.current?.cropper;
+    if (cropper) {
+      const croppedCanvas = cropper.getCroppedCanvas(); // Get the cropped area as a canvas
+      const croppedDataUrl = croppedCanvas.toDataURL(); // Convert canvas to base64 URL
+      setCroppedImage(croppedDataUrl); // Store the cropped image URL
+      uploadCroppedImage(croppedDataUrl); // Optionally upload the cropped image to the server
+    }
+  };
+
+  // Upload the cropped image to the server
+  const uploadCroppedImage = async (croppedDataUrl) => {
+    try {
+      const response = await axios.post('/api/upload', { image: croppedDataUrl });
+      console.log('Image uploaded successfully:', response.data);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  return (
+    <div>
+      <h1>Image Cropper</h1>
+      <input type="file" onChange={handleImageChange} accept="image/*" />
+      {image && (
+        <div>
+          <Cropper
+            src={image}
+            style={{ height: 400, width: '100%' }}
+            initialAspectRatio={1}
+            aspectRatio={1}
+            guides={false}
+            ref={cropperRef}
+            viewMode={1}
+            dragMode="move"
+            cropBoxResizable={true}
+            cropBoxMovable={true}
+          />
+          <button onClick={handleCrop}>Crop Image</button>
+        </div>
+      )}
+      {croppedImage && (
+        <div>
+          <h3>Cropped Image</h3>
+          <img src={croppedImage} alt="Cropped" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ImageCropper;
